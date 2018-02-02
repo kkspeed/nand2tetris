@@ -1,6 +1,6 @@
 use std::io::{Read, BufReader};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Segment {
     LCL,
     ARG,

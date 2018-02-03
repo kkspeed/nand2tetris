@@ -2,6 +2,7 @@ use parser::{Segment, VmCommand};
 use untyped_ir::*;
 
 use std::io::Write;
+use std::iter;
 use std::collections::HashMap;
 
 struct BasicBlock {
@@ -143,6 +144,7 @@ impl Graph {
     }
 
     pub fn write_graphviz(&self, w: &mut Write) {
+        let d = self.dominate_nodes();
         w.write(b"digraph G {\n").unwrap();
         for i in 0..self.nodes.len() {
             let irs = get_untyped_ir_from_vm_commands(&self.nodes[i].commands);
@@ -150,10 +152,18 @@ impl Graph {
                 .map(|s| format!("{}", s))
                 .collect::<Vec<String>>()
                 .join("\\n");
+            let mut doms = String::new();
+            for dn in 0..d[i].len() {
+                if d[i][dn] == 1 {
+                    doms = format!("{} {}", doms, dn);
+                }
+            }
             w.write_fmt(format_args!(
-                "{} [shape=box,label=\"label={}\\n{}\"];\n",
+                "{} [shape=box,label=\"{}\\nlabel={}\\ndoms{{{}}}\\n{}\"];\n",
+                i,
                 i,
                 self.nodes[i].label.as_ref().unwrap_or(&"".into()),
+                doms,
                 s
             )).unwrap();
             for n in self.nodes[i].neighbors.iter() {
@@ -167,4 +177,42 @@ impl Graph {
         }
         w.write(b"}\n").unwrap();
     }
+    
+    pub fn dominate_nodes(&self) -> Vec<Vec<usize>> {
+        let mut result = Vec::new();
+        result.push(iter::repeat(0).take(self.nodes.len()).collect::<Vec<usize>>());
+        result[0][0] = 1;
+        for n in 1..self.nodes.len() {
+           result.push(iter::repeat(1).take(self.nodes.len()).collect::<Vec<usize>>());
+        }
+        loop {
+            let mut changed = false;
+            for n in 1..self.nodes.len() {
+                let mut t = iter::repeat(1).take(self.nodes.len()).collect::<Vec<usize>>();
+                for k in self.pred(n) {
+                    t = intersect(&result[k], &t);
+                }
+                t[n] = 1;
+                for j in 0..t.len() {
+                    if t[j] != result[n][j] {
+                        result[n] = t;
+                        changed = true;
+                        break;
+                    }
+                }
+            }
+            if !changed {
+                break;
+            }
+        }
+        result
+    }
+}
+
+fn intersect(v1: &[usize], v2: &[usize]) -> Vec<usize> {
+    let mut result = Vec::new();
+    for i in 0..v1.len() {
+        result.push(v1[i] * v2[i]);
+    }
+    result
 }

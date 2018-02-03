@@ -145,6 +145,7 @@ impl Graph {
 
     pub fn write_graphviz(&self, w: &mut Write) {
         let d = self.dominate_nodes();
+        let lhs = self.loop_headers(&d);
         w.write(b"digraph G {\n").unwrap();
         for i in 0..self.nodes.len() {
             let irs = get_untyped_ir_from_vm_commands(&self.nodes[i].commands);
@@ -159,8 +160,9 @@ impl Graph {
                 }
             }
             w.write_fmt(format_args!(
-                "{} [shape=box,label=\"{}\\nlabel={}\\ndoms{{{}}}\\n{}\"];\n",
+                "{} [shape=box,label=\"{}\\n{}\\nlabel={}\\ndoms{{{}}}\\n{}\"];\n",
                 i,
+                if lhs[i] == 1 { "header" } else { "" },
                 i,
                 self.nodes[i].label.as_ref().unwrap_or(&"".into()),
                 doms,
@@ -176,6 +178,18 @@ impl Graph {
             }
         }
         w.write(b"}\n").unwrap();
+    }
+
+    pub fn loop_headers(&self, dom: &Vec<Vec<usize>>) -> Vec<usize> {
+        let mut result: Vec<usize> = iter::repeat(0).take(self.nodes.len()).collect();
+        for i in 0..self.nodes.len() {
+            for n in &self.nodes[i].neighbors {
+                if dom[i][*n] == 1 {
+                    result[*n] = 1;
+                }
+            }
+        }
+        result
     }
     
     pub fn dominate_nodes(&self) -> Vec<Vec<usize>> {

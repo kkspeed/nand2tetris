@@ -40,7 +40,7 @@ impl Segment {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum VmCommand {
     Push(Segment, i32),
     Pop(Segment, i32),

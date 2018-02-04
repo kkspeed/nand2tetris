@@ -5,6 +5,7 @@ use parser::{VmCommand, Segment};
 
 #[derive(Clone)]
 pub enum UnTypedIR {
+    FuncDef(String, Vec<UnTypedIR>),
     ConstInt(i32),
     Var(String),
     Unary(String, Box<UnTypedIR>),
@@ -19,6 +20,13 @@ pub enum UnTypedIR {
 impl Display for UnTypedIR {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
+            &UnTypedIR::FuncDef(ref func, ref body) => {
+                write!(f, "function {}(...){{\n", func)?;
+                for i in body.iter() {
+                    write!(f, "{};\n", i)?;
+                }
+                write!(f, "}}\n")
+            } 
             &UnTypedIR::ConstInt(i) => write!(f, "{}", i),
             &UnTypedIR::Var(ref s) => write!(f, "{}", s),
             &UnTypedIR::Unary(ref op, ref e) => write!(f, "{}({})", op, e),

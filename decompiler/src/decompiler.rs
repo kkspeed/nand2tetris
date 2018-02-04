@@ -1,4 +1,4 @@
-use parser::{Segment, VmCommand};
+use parser::{VmCommand};
 use std::fmt::Display;
 use untyped_ir::*;
 
@@ -206,7 +206,7 @@ impl<CmdType: Display> Graph<CmdType> {
 }
 
 impl Graph<VmCommand> {
-    pub fn build(commands: Vec<VmCommand>) -> Self {
+    pub fn build(commands: Vec<VmCommand>) -> Graph<VmCommand> {
         let block = BasicBlock::default();
         let mut graph = Graph {
             nodes: Vec::new(),

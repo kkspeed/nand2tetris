@@ -26,7 +26,7 @@ fn main() {
                     let rs = g.reconstruct_code();
                     println!("function {}(...) {{\n", current_func);
                     for r in rs.iter() {
-                        println!("{}", r);
+                        println!("{};", r);
                     }
                     println!("}}\n");
                     current_func = s;
@@ -43,7 +43,7 @@ fn main() {
     let rs = g.reconstruct_code();
     println!("function {}(...) {{\n", current_func);
     for r in rs.iter() {
-        println!("{}", r);
+        println!("{};", r);
     }
     println!("}}\n");
     // let g: Graph<UnTypedIR> = From::from(Graph::build(vm_commands(input))); //.write_graphviz(&mut writer);

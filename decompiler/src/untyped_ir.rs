@@ -3,6 +3,7 @@ use std::fmt::Display;
 
 use parser::{VmCommand, Segment};
 
+#[derive(Clone)]
 pub enum UnTypedIR {
     ConstInt(i32),
     Var(String),
@@ -11,6 +12,8 @@ pub enum UnTypedIR {
     Call(String, Vec<UnTypedIR>),
     Assign(String, Box<UnTypedIR>),
     Return(Box<UnTypedIR>),
+    If(Box<UnTypedIR>, Vec<UnTypedIR>, Vec<UnTypedIR>, Vec<UnTypedIR>),
+    While(Box<UnTypedIR>, Vec<UnTypedIR>, Vec<UnTypedIR>),
 }
 
 impl Display for UnTypedIR {
@@ -29,6 +32,36 @@ impl Display for UnTypedIR {
             }
             &UnTypedIR::Assign(ref e1, ref e2) => write!(f, "let {}={}", e1, e2),
             &UnTypedIR::Return(ref e) => write!(f, "return({})", e),
+            &UnTypedIR::If(ref e, ref taken, ref not_taken, ref cont) => {
+                write!(f, "if ({}) {{\n", e)?;
+                for s in taken.iter() {
+                    write!(f, "{};\n", s)?;
+                }
+                if !not_taken.is_empty() {
+                    write!(f, "}} else {{\n")?;
+                    for s in not_taken.iter() {
+                        write!(f, "{};\n", s)?;
+                    }
+                    write!(f, "}}\n")?;
+                } else {
+                    write!(f, "}}\n")?;
+                }
+                for s in cont.iter() {
+                    write!(f, "{};\n", s)?;
+                }
+                Ok(())
+            }
+            &UnTypedIR::While(ref e, ref body, ref cont) => {
+                write!(f, "while ({}) {{\n", e)?;
+                for s in body.iter() {
+                    write!(f, "{};\n", s)?;
+                }
+                write!(f, "}}\n")?;
+                for s in cont.iter() {
+                    write!(f, "{};\n", s)?;
+                }
+                Ok(())
+            }
         }
     }
 }

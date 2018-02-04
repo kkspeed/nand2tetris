@@ -1,3 +1,5 @@
+use std::fmt;
+use std::fmt::Display;
 use std::io::{Read, BufReader};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -57,6 +59,21 @@ pub enum VmCommand {
     Call(String, i32),
     FunDef(String, i32),
     Return,
+}
+
+impl Display for VmCommand {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            &VmCommand::Push(seg, i) => write!(f, "push {:?} {}", seg, i),
+            &VmCommand::Pop(seg, i) => write!(f, "pop {:?} {}", seg, i),
+            &VmCommand::Label(ref s) => write!(f, "label {}", s),
+            &VmCommand::Goto(ref s) => write!(f, "goto {}", s),
+            &VmCommand::IfGoto(ref s) => write!(f, "if-goto {}", s),
+            &VmCommand::FunDef(ref s, i) => write!(f, "function {} {}", s, i),
+            &VmCommand::Call(ref s, i) => write!(f, "call {} {}", s, i),
+            cmd => write!(f, "{:?}", cmd),
+        }
+    }
 }
 
 impl VmCommand {

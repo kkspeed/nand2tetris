@@ -272,10 +272,14 @@ impl Graph<VmCommand> {
 }
 
 impl Graph<UnTypedIR> {
-    pub fn reconstruct_code(&self) -> Vec<UnTypedIR> {
+    pub fn reconstruct_code(&mut self) -> Vec<UnTypedIR> {
         let doms = self.dominate_nodes();
         let idoms = self.idom_nodes(&doms);
         let lhs = self.loop_headers(&doms);
+        for n in self.nodes.iter_mut() {
+            let t = n.commands.drain(0..).collect();
+            n.commands = recover_array_access(t);
+        }
         let (_, irs) = self.reconstruct_from_node_until(0, &doms, &idoms, &lhs, &|_| false);
         irs
     }
@@ -356,5 +360,71 @@ fn intersect(v1: &[usize], v2: &[usize]) -> Vec<usize> {
     for i in 0..v1.len() {
         result.push(v1[i] * v2[i]);
     }
+    result
+}
+
+pub fn recover_array_access(mut irs: Vec<UnTypedIR>) -> Vec<UnTypedIR> {
+    return irs;
+    loop {
+        let mut last_def_index = None;
+        let mut last_use_index = None;
+        for i in 0..irs.len() {
+            if irs[i].has_use("THAT_0") {
+                last_use_index = Some(i);
+                break;
+            } else {
+                match &irs[i] {
+                    &UnTypedIR::Assign(ref s, _) if s.is_assigned_to("POINTER_1") => { println!("assigned to {:?}", irs[i]); last_def_index = Some(i) },
+                    _ => (),
+                }
+            }
+        }
+        if last_use_index.is_some() {
+            let use_index = last_use_index.take().unwrap();
+            let def_index = last_def_index.take().unwrap();
+            let ir = irs.remove(use_index);
+            for r in irs.iter() {
+                println!("{}", r);
+            }
+            let def_ir = irs.remove(def_index);
+            println!("rm'd");
+            for r in irs.iter() {
+                println!("{}", r);
+            }
+            println!("end rm'd");
+            irs.insert(use_index - 1, ir.replace_var("THAT_0", &def_ir.to_array_offset()));
+        } else {
+            break;
+        }
+    }
+    irs
+}
+
+pub fn to_untyped_ir(vm_commands: &mut Iterator<Item=VmCommand>) -> Vec<UnTypedIR> {
+    let mut buffer = Vec::new();
+    let mut current_func = String::new();
+    let mut result = Vec::new();
+    for c in vm_commands {
+        match c {
+            VmCommand::FunDef(s, _)  => {
+                if buffer.is_empty() {
+                    current_func = s;
+                    buffer = vec![];
+                } else {
+                    let mut g: Graph<UnTypedIR> = From::from(Graph::build(buffer.drain(0..).collect()));
+                    let rs = g.reconstruct_code();
+                    result.push(UnTypedIR::FuncDef(current_func, rs));
+                    current_func = s;
+                }
+            }
+            x => {
+                buffer.push(x);
+            }
+        }
+    }
+
+    let mut g: Graph<UnTypedIR> = From::from(Graph::build(buffer.drain(0..).collect()));
+    let rs = g.reconstruct_code();
+    result.push(UnTypedIR::FuncDef(current_func, rs));
     result
 }
